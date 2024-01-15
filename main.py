@@ -1,7 +1,16 @@
 import requests
 import re
+import pandas as pd
+
+# region DF config
+FILE = "83344-9 proteinGroups-perseus.xlsx"
+SHEET = "83344-9 proteinGroups-perseus"
+COLUMNS = "A:D"
+HEADERS = 1
+NUM_OF_ROWS = 619
 
 
+# endregion
 def get_protein_data(protein_id: str) -> str:
     url = f"https://www.uniprot.org/uniprot/{protein_id}.xml"
     response = requests.get(url)
@@ -11,7 +20,7 @@ def get_protein_data(protein_id: str) -> str:
 
 def extract_subcellular_locations(protein_data_from_xml: str) -> list:
     subcellular_location_tag_regex = r'(?<=<comment type="subcellular location">)(.*?)(?=</comment>)'
-    location_tag_regex = r'(?<=<location>)(.*?)(?=</location>)'
+    location_tag_regex = r'<location.*?>(.*?)<\/location>'
     locations = list()
 
     matches = re.findall(subcellular_location_tag_regex, protein_data_from_xml, re.DOTALL)
@@ -30,3 +39,12 @@ def get_subcellular_locations(protein_id: str) -> list:
 
 # locations = get_subcellular_locations('P19338')
 # print(locations)
+
+df = pd.read_excel(FILE, sheet_name=SHEET, usecols=COLUMNS, header=HEADERS, nrows=NUM_OF_ROWS)
+
+df['Protein IDs'] = df['Protein IDs'].apply(lambda x: x.split(';') if ';' in x else [x])
+for idx, row in df.iterrows():
+    for protein_id in row['Protein IDs']:
+        subcellular_locations = get_subcellular_locations(protein_id)
+        print(subcellular_locations)
+        pass
